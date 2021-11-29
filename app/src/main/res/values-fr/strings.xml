@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">NASA Image Searcher</string>
+    <string name= "enterLogitude">Entrez la longitude</string>
+    <string name="enterLatitude">Entrez la latitude</string>
+    <string name="searchforImage">recherche d\'image</string>
+    <string name="goToFavourites">aller aux favoris</string>
+</resources>

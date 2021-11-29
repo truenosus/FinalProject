@@ -1,3 +1,7 @@
 <resources>
-    <string name="app_name">FinalProject</string>
+    <string name= "enterLogitude">Enter Longitude:</string>
+    <string name="enterLatitude">Enter Latitude:</string>
+    <string name="searchforImage">Search for image</string>
+    <string name="goToFavourites">Go to Favourites</string>
+    <string name="app_name">NASA Image Searcherr</string>
 </resources>
