@@ -1,15 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="wrap_content"
+    android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:orientation="vertical"
     >
 
     <ImageView
         android:id="@+id/EarthImage"
-        android:layout_width="100dp"
-        android:layout_height="100dp"
-        android:layout_gravity="left"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
         />
 
     <TextView
@@ -19,13 +18,13 @@
         android:layout_gravity="left"
         android:text="LATITUDE"
         />
+
     <TextView
+        android:id="@+id/longitudeResult"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:id="@+id/longitudeResult"
         android:layout_gravity="left"
-        android:text="LONGITUDE"
-        />
+        android:text="LONGITUDE" />
 
     <TextView
         android:layout_width="wrap_content"

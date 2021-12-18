@@ -1,34 +1,31 @@
 package com.example.finalproject;
 
-import androidx.appcompat.app.AlertDialog;
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.ActionBarDrawerToggle;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.Toolbar;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.os.Bundle;
 import android.text.format.DateFormat;
-import android.util.Log;
-import android.view.LayoutInflater;
+import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.ListView;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.material.snackbar.Snackbar;
+import com.google.android.material.navigation.NavigationView;
 
-import java.io.InputStream;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.ExecutionException;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -42,179 +39,184 @@ public class MainActivity extends AppCompatActivity {
     //list view
     private ListView earthImageListView;
     //list array
-    private List<EarthImage> earthImageListArray = new ArrayList<>();
-    //adapter
-    private SearchAdapter adapter;
+    private List<EarthImageObject> earthImageObjectListArray = new ArrayList<>();
+    private Button goToFavourites;
+
     //progbar
-    private ProgressBar progressBar;
+    private static ProgressBar progressBar;
+
+    //toolbar
+    private Toolbar toolbar;
+    private NavigationView navigationView;
+    private DrawerLayout drawerLayout;
+
+
+    static String imageDate;
+    
+    SharedPreferences savedSearch = null;
+
+
+    private static MainActivity instance;
+
+    public MainActivity(){
+        instance=this;
+    }
+
+    public static Context getContext(){
+        return instance;
+    }
+
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    protected void onStop() {
+        super.onStop();
+    }
+
+    private void saveSavedPreferences(String lat, String lon) {
+        SharedPreferences.Editor editor = savedSearch.edit();
+        editor.putString("LAT", lat);
+        editor.putString("LON",lon);
+        editor.apply();
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.activity_main_navigation);
 
         //get object from the XML by ID
         latSearchBox = findViewById(R.id.latitudeSearch);
         lonSearchBox= findViewById(R.id.longitudeSearch);
         searchButton = findViewById(R.id.searchForImage);
-        earthImageListView= findViewById(R.id.searchResultsListView);
+        goToFavourites=findViewById(R.id.goToFavourites);
+
+
         progressBar = findViewById(R.id.progressBar);
 
-        //make new adapter and attach it to the listview
-        adapter = new SearchAdapter(getApplicationContext(),R.layout.activity_main);
-        earthImageListView.setAdapter(adapter);
+        goToFavourites = findViewById(R.id.goToFavourites);
+
+        //nav drawer
+        toolbar=findViewById(R.id.app_bar_main);
+        navigationView= findViewById(R.id.nav_view);
+        drawerLayout = findViewById(R.id.drawer_layout);
+
+        setSupportActionBar(toolbar);
+
+        ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(this,drawerLayout,toolbar,
+                R.string.open,R.string.close);
+        drawerLayout.addDrawerListener(toggle);
+        toggle.syncState();
+
+        NavigationDrawer navDrawer = new NavigationDrawer(getContext());
+
+       navigationView.setNavigationItemSelectedListener(navDrawer);
+
 
 
         //set an on click listneer to trigger the serachButtonClick() method,
         View.OnClickListener searchListener = view -> {
             searchButtonClick();
         };
+
+        View.OnClickListener goToFavouritesListener = view -> {
+            goToFavourites();
+        };
         // above listener is attahed to saerch button
         searchButton.setOnClickListener(searchListener);
+        goToFavourites.setOnClickListener(goToFavouritesListener);
 
-        //set thet earth image list view on click to create a toast object that displays the position. TO BE UPDATED
-        earthImageListView.setOnItemLongClickListener((p, b, position, id) -> {
-            Toast earthImageToastPopup = Toast.makeText(getApplicationContext(),
-                    "This is the " + position + "th item.",
-                    Toast.LENGTH_SHORT);
-            earthImageToastPopup.show();
-            return true;
+        savedSearch= getSharedPreferences("Filename", Context.MODE_PRIVATE);
+
+        String savedLat = savedSearch.getString("LAT", "enter LAT");
+        String savedLon = savedSearch.getString("LON", "enter LON");
+        latSearchBox.setText(savedLat);
+        lonSearchBox.setText(savedLon);
+
+        Button helpButton = findViewById(R.id.helpMain);
+        helpButton.setOnClickListener((View v) -> {
+            Toast.makeText(getContext(), "Enter latitude and longitude, then hit the search to find your image!!" , Toast.LENGTH_SHORT).show();
         });
+
+
 
     }
 
-    public void searchButtonClick(){
+    private void goToFavourites() {
+        Intent goToFavouritesIntent = new Intent(this,Favourites.class);
+        startActivity(goToFavouritesIntent);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        return super.onOptionsItemSelected(item);
+    }
+
+    public void searchButtonClick() {
+
+        EarthSearchFragment searchFragment = new EarthSearchFragment();
+
         //get input from text boxes
         String lat = latSearchBox.getText().toString();
         String lon = lonSearchBox.getText().toString();
-        //build url with method
-        String url = buildURL(lat,lon);
-        //get image from method NEEDS TO BE UPDATED AND FIXED
-        Bitmap img = loadImageFromURL(url);
-        EarthImage earthImage = new EarthImage(lat,lon,img);
-        adapter.add(earthImage);
 
-        //make snackbar object when you click search
-        Snackbar snackbar = Snackbar.make(earthImageListView,"Search made",Snackbar.LENGTH_SHORT);
-        //have an undo button on snackbar
-        snackbar.setAction("UNDO", new View.OnClickListener() {
-                    @Override
-                    public void onClick(View view) {
-                        //remove the last onject in the lsit
-                        adapter.remove(adapter.getCount()-1);
-                        //clear text
-                        latSearchBox.setText("");
-                        lonSearchBox.setText("");
-                    }});
-        snackbar.show();
+        updateProgressBar(10);
+
+
+        Bundle bundleArgs = new Bundle();
+
+        try {
+            Bitmap earthBitMap = new EarthImageDownloader().execute(buildURL(lat,lon)).get();
+
+
+            bundleArgs.putParcelable("IMAGE", earthBitMap );
+
+            bundleArgs.putString("LAT", lat);
+            bundleArgs.putString("LON", lon);
+            bundleArgs.putString("DATE",imageDate);
+
+            saveSavedPreferences(lat,lon);
+
+            updateProgressBar(50);
+        }
+         catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        }
+
+        updateProgressBar(80);
+        //set the framelocation to hold fragment
+        searchFragment.setArguments(bundleArgs);
+        getSupportFragmentManager()
+                .beginTransaction()
+                .replace(R.id.frameLocation,searchFragment)
+                .commit();
+        updateProgressBar(100);
+
+    }
+    //update progressbar by calling this method
+
+    public static void updateProgressBar(int x){
+        progressBar.setProgress(x);
     }
 
     public static String buildURL(String lat, String lon){
         String apiKey = "Y0OwrBkZNZFxDYYs5xdw5KOCRau6PY7CSfwrfQuT";
 
-//        Date todayDate = new Date();
-//        String date = DateFormat.format("yyyy-MM-dd", todayDate).toString();
+        //Date todayDate = new Date();
+       // String date = DateFormat.format("yyyy-MM-dd", todayDate).toString();
 
-       String date = "2014-02-01";
+
+        String date = "2021-11-01";
 
         String imageURL = "https://api.nasa.gov/planetary/earth/assets?lon="+lon+"&lat="+lat+"&date="+date+"&api_key="+apiKey;
         return imageURL;
     }
-
-
-    //this doesnt work lol, i think i need to put it in an askync task class thing
-    public Bitmap loadImageFromURL(String url) {
-        try {
-            URL imageUrl = new URL(url);
-            publishProgress(25);
-            HttpURLConnection connection = (HttpURLConnection) imageUrl.openConnection();
-            publishProgress(50);
-            InputStream input = (InputStream) connection.getInputStream();
-            publishProgress(75);
-            Bitmap image = BitmapFactory.decodeStream(input);
-            publishProgress(100);
-            return image;
-        } catch (Exception e) {
-            publishProgress(0);
-            Log.e("TAG", "loadImageFromURL: ERROROORROOROR");
-            return null;
-        }
-    }
-
-    //update progressbar by calling this method
-    public void publishProgress(int x){
-
-        progressBar.setProgress(x);
-    }
-
-
-
-    //my saerch array adapter
-    private class SearchAdapter extends ArrayAdapter<EarthImage> {
-
-        private ImageView imageView;
-        private TextView latBox;
-        private TextView lonBox;
-        private Context context;
-
-        public SearchAdapter(Context context, int resource) {
-            super(context, resource);
-            this.context = context;
-        }
-
-        @Override
-        public int getCount() {
-            return earthImageListArray.size();
-        }
-
-        @Override
-        public EarthImage getItem(int i) {
-            return earthImageListArray.get(i);
-        }
-
-        @Override
-        public long getItemId(int i) {
-            return earthImageListArray.get(i).hashCode();
-        }
-
-        @Override
-        public View getView(int position, View viewOld, ViewGroup parent) {
-
-            //get earthimage
-            EarthImage earthImage = getItem(position);
-            View row = viewOld;
-            LayoutInflater inflater = getLayoutInflater();
-
-            row=inflater.inflate(R.layout.earthimage,parent,false);
-
-            //finds empty bits in layout
-            imageView = (ImageView) row.findViewById(R.id.EarthImage);
-            latBox = (TextView) row.findViewById(R.id.latitudeResult);
-            lonBox = (TextView) row.findViewById(R.id.longitudeResult);
-
-            //sets the text for textview to whatever the content is
-            imageView.setImageBitmap(earthImage.getImage());
-            latBox.setText(earthImage.getLat());
-            lonBox.setText(earthImage.getLon());
-
-            //returns the new CHATROW from the LAYOUTS
-            return row;
-        }
-
-        //additional add method for the adapter I made that just simply adds the chat message objects to the chatlist
-        public void add(EarthImage passEarthImage) {
-            earthImageListArray.add(passEarthImage);
-            super.add(passEarthImage);
-            super.notifyDataSetChanged();
-        }
-
-        public void remove(int pos) {
-            //removes from arraylist
-            earthImageListArray.remove(getItem(pos));
-            super.notifyDataSetChanged();
-        }
-
-
-    }
-
 }
+
+
